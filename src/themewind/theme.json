@@ -1,0 +1,8 @@
+{
+  "color": {
+    "primary": "green"
+  },
+  "border": {
+    "radius": "rounded-2xl"
+  }
+}

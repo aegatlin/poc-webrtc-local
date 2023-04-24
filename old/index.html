@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>No Server RTCDataChannel Example</h1>
+    <p>You can either Offer or Answer, not both!</p>
+    <p>
+      When copying and pasting, be careful, SDPs require EOF new lines (aka, hit
+      enter after pasting).
+    </p>
+    <p>
+      This has only worked for me on Chrome. Firefox times out. Haven't tried
+      other browsers.
+    </p>
+
+    <h2>Offer</h2>
+    <p>
+      To Offer, create an offer SDP and offer ice candidates and send them to
+      your peer.
+    </p>
+    <button id="create-offer">Create</button>
+    <h3>SDP</h3>
+    <div id="offer-sdp"></div>
+    <h3>ICE candidates</h3>
+    <div id="offer-candidates"></div>
+    <h3>Peer Answer SDP</h3>
+    <div>
+      <textarea
+        id="peer-answer-sdp"
+        cols="120"
+        rows="10"
+        placeholder="peer answer"
+      ></textarea>
+    </div>
+    <h3>Peer Answer ICE candidates</h3>
+    <div>
+      <textarea
+        id="peer-answer-candidates"
+        cols="120"
+        rows="10"
+        placeholder="peer answer"
+      ></textarea>
+    </div>
+    <button id="submit-peer-answer">Submit peer answer</button>
+
+    <h2>Answer</h2>
+    <p>
+      To answer you need to know your peer's offer SDP and your peer's offer ice
+      candidates.
+    </p>
+    <h3>Peer offer SDP</h3>
+    <div>
+      <textarea
+        id="peer-offer-sdp"
+        placeholder="peer SDP offer"
+        rows="8"
+        cols="120"
+      ></textarea>
+    </div>
+    <h3>Peer offer ICE candidates</h3>
+    <div>
+      <textarea
+        id="peer-offer-candidates"
+        placeholder="peer ICE candidates"
+        rows="8"
+        cols="120"
+      ></textarea>
+    </div>
+    <div>
+      <button id="create-answer">Create Answer</button>
+    </div>
+    <h3>SDP Answer</h3>
+    <div id="answer-sdp"></div>
+    <h3>ICE candidates</h3>
+    <div id="answer-candidates"></div>
+
+    <script src="./index.js" async></script>
+  </body>
+</html>
