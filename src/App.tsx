@@ -1,15 +1,30 @@
-import { Button, Card, Header } from "react-ichabod";
+import { Button, Card } from "react-ichabod";
+import { useNavigate } from "react-router-dom";
+import * as uuid from "uuid";
 import { classes } from "./themewind/classes";
+import { Header } from "./components/Header";
 
 export function App() {
+  const navigate = useNavigate();
+
+  const handleNewRoom = () => {
+    const roomId = uuid.v4();
+    navigate(`/room/${roomId}`);
+  };
+
   return (
     <>
-      <Header classes={classes.header}>Play</Header>
-      <div className="flex flex-col items-center mt-16">
+      <Header />
+      <div className="mt-16 flex flex-col items-center">
         <Card classes={classes.card}>
-          maybe this will be poc-local-webrtc one day!
+          {"a demonstration of the limits of 'true p2p' in the browser"}
         </Card>
-        <Button classes={classes.button}>hello</Button>
+        <div className="flex space-x-8">
+          <Button classes={classes.button} onClick={handleNewRoom}>
+            new room
+          </Button>
+          <Button classes={classes.button}>join room</Button>
+        </div>
       </div>
     </>
   );
