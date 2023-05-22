@@ -6,20 +6,25 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Room } from "./Room.tsx";
 import { Join } from "./Join.tsx";
 
-const router = createBrowserRouter([
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <App />,
+    },
+    {
+      path: "/room/join",
+      element: <Join />,
+    },
+    {
+      path: "/room/:roomId",
+      element: <Room />,
+    },
+  ],
   {
-    path: "/",
-    element: <App />,
-  },
-  {
-    path: "/room/join",
-    element: <Join />
-  },
-  {
-    path: "/room/:roomId",
-    element: <Room />,
-  },
-]);
+    basename: "/poc-webrtc-local",
+  }
+);
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
