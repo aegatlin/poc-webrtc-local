@@ -6,6 +6,7 @@ import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Header } from "./components/Header";
 import { PayloadAnswer, PayloadOffer } from "./types";
+import { MessagePanel } from "./components/MessagePanel";
 
 const wrtcAnswer = new WrtcAnswer("def456");
 
@@ -65,6 +66,10 @@ export function Join() {
               </Button>
             </div>
           </Card>
+          <MessagePanel
+            messages={wrtcSnapshot.messages}
+            sendMessage={wrtcAnswer.sendMessage.bind(wrtcAnswer)}
+          />
         </div>
         <div className="flex w-full max-w-prose flex-col gap-4 break-words rounded-lg border-2 border-purple-900 p-4">
           {wrtcSnapshot.remoteOfferPayload && (

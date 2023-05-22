@@ -1,14 +1,16 @@
-import { PayloadOffer, SnapshotAnswer, SnapshotOffer } from "./types";
+import { Message, PayloadOffer, SnapshotAnswer, SnapshotOffer } from "./types";
+import * as uuid from "uuid";
 
 export class WrtcAnswer {
   id: string;
   rtcPeerConnection: RTCPeerConnection;
   iceCandidates: RTCIceCandidate[];
-  dataChannel: RTCDataChannel;
+  dataChannel: RTCDataChannel | null = null;
   public onUpdateCallback: () => void = () => null;
   public snapshot: SnapshotAnswer;
   private remoteOfferPayload: PayloadOffer | null = null;
   private subscriptionCallbacks: (() => void)[] = [];
+  private messages: Message[] = [];
 
   constructor(id: string) {
     if (!window) throw "no window";
@@ -17,6 +19,7 @@ export class WrtcAnswer {
       remoteOfferPayload: this.remoteOfferPayload,
       sessionDescription: null,
       iceCandidates: [],
+      messages: [],
     };
 
     this.id = id;
@@ -25,8 +28,8 @@ export class WrtcAnswer {
     this.iceCandidates = [];
     this.initIceCandidateEventListeners();
 
-    this.dataChannel = this.rtcPeerConnection.createDataChannel(this.id);
-    this.initLocalDataChannelListeners();
+    // this.dataChannel = this.rtcPeerConnection.createDataChannel(this.id);
+    // this.initLocalDataChannelListeners();
     this.initRemoteDataChannelListeners();
   }
 
@@ -87,48 +90,67 @@ export class WrtcAnswer {
     });
   }
 
+  sendMessage(content: string) {
+    const msg: Message = {
+      id: uuid.v4(),
+      isRemote: false,
+      content,
+    };
+
+    this.addMessage(msg);
+    this.dataChannel?.send(JSON.stringify(msg));
+  }
+
+  private addMessage(msg: Message) {
+    this.messages.push(msg);
+    this.snapshot = {
+      ...this.snapshot,
+      messages: this.messages,
+    };
+    this.publish();
+  }
+
   /**
    * I think these listeners are listening to local message
    * events. Aka, they are not actually useful, but are
    * for logging/debugging.
    */
-  private initLocalDataChannelListeners() {
-    if (!this.dataChannel) throw "no data channel";
+  // private initLocalDataChannelListeners() {
+  //   if (!this.dataChannel) throw "no data channel";
 
-    this.dataChannel.addEventListener("open", (e) => {
-      console.log("local datachannel open", e);
-      this.dataChannel.send("hello from local");
-    });
+  //   this.dataChannel.addEventListener("open", (e) => {
+  //     console.log("local datachannel open", e);
+  //     this.dataChannel.send("hello from local");
+  //   });
 
-    this.dataChannel.addEventListener("message", (e) => {
-      console.log("local message received", e, e.data);
-    });
-  }
+  //   this.dataChannel.addEventListener("message", (e) => {
+  //     console.log("local message received", e, e.data);
+  //   });
+  // }
 
   /**
    * I believe that once a 'datachannel' event is received,
    * it means that a remote connection has been established,
    * and therefore you:
    *
-   * 1. have a data channel.
+   * 1. have a data channel which was created by remote (so, in this case, offer).
    * 2. Can add listeners to said channel
    * 3. Respond to 'message' events on said channel
-   *
-   * This function will need to get more sophisticated over time to
-   * handle chats.
    */
   private initRemoteDataChannelListeners() {
     this.rtcPeerConnection.addEventListener("datachannel", (e) => {
-      console.log("remote datachannel event: ", e);
-      const dataChannel = e.channel;
+      console.log("remote datachannel initiated");
+      this.dataChannel = e.channel;
 
-      dataChannel.addEventListener("open", (e) => {
-        console.log("remote datachannel open", e);
-        dataChannel.send("hello from remote");
+      this.dataChannel.addEventListener("open", (e) => {
+        console.log("remote datachannel open");
       });
 
-      dataChannel.addEventListener("message", (e) => {
-        console.log("remote message received", e, e.data);
+      this.dataChannel.addEventListener("message", (e) => {
+        console.log("remote message received");
+        console.log('???? ', e.data, JSON.parse(e.data))
+        const msg: Message = JSON.parse(e.data);
+        this.addMessage({ ...msg, isRemote: true });
       });
     });
   }

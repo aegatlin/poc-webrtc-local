@@ -1,4 +1,5 @@
-import { PayloadAnswer, SnapshotOffer } from "./types";
+import { Message, PayloadAnswer, SnapshotOffer } from "./types";
+import * as uuid from "uuid";
 
 export class WrtcOffer {
   id: string;
@@ -9,6 +10,7 @@ export class WrtcOffer {
   public snapshot: SnapshotOffer;
   private subscriptionCallbacks: (() => void)[] = [];
   remoteAnswerPayload: PayloadAnswer | null = null;
+  private messages: Message[] = [];
 
   constructor(id: string) {
     if (!window) throw "no window";
@@ -16,6 +18,7 @@ export class WrtcOffer {
       remoteAnswerPayload: this.remoteAnswerPayload,
       sessionDescription: null,
       iceCandidates: [],
+      messages: [],
     };
 
     this.id = id;
@@ -26,7 +29,7 @@ export class WrtcOffer {
 
     this.dataChannel = this.rtcPeerConnection.createDataChannel(this.id);
     this.initLocalDataChannelListeners();
-    this.initRemoteDataChannelListeners();
+    // this.initRemoteDataChannelListeners();
   }
 
   async createOffer() {
@@ -84,6 +87,28 @@ export class WrtcOffer {
     });
   }
 
+  sendMessage(content: string) {
+    console.log('!!!!!!!!!!!!!! ', this)
+    const msg: Message = {
+      id: uuid.v4(),
+      isRemote: false,
+      content,
+    };
+
+    this.addMessage(msg);
+    this.dataChannel.send(JSON.stringify(msg));
+    console.log(msg, JSON.stringify(msg))
+  }
+
+  private addMessage(msg: Message) {
+    this.messages.push(msg);
+    this.snapshot = {
+      ...this.snapshot,
+      messages: this.messages,
+    };
+    this.publish();
+  }
+
   /**
    * I think these listeners are listening to local message
    * events. Aka, they are not actually useful, but are
@@ -93,12 +118,13 @@ export class WrtcOffer {
     if (!this.dataChannel) throw "no data channel";
 
     this.dataChannel.addEventListener("open", (e) => {
-      console.log("local datachannel open", e);
-      this.dataChannel.send("hello from local");
+      console.log("datachannel open");
     });
 
     this.dataChannel.addEventListener("message", (e) => {
-      console.log("local message received", e, e.data);
+      console.log("message received");
+      const msg: Message = JSON.parse(e.data);
+      this.addMessage({ ...msg, isRemote: true });
     });
   }
 
@@ -114,19 +140,30 @@ export class WrtcOffer {
    * This function will need to get more sophisticated over time to
    * handle chats.
    */
-  private initRemoteDataChannelListeners() {
-    this.rtcPeerConnection.addEventListener("datachannel", (e) => {
-      console.log("remote datachannel event: ", e);
-      const dataChannel = e.channel;
+  // private initRemoteDataChannelListeners() {
+  //   this.rtcPeerConnection.addEventListener("datachannel", (e) => {
+  //     console.log("remote datachannel event: ", e);
+  //     const dataChannel = e.channel;
 
-      dataChannel.addEventListener("open", (e) => {
-        console.log("remote datachannel open", e);
-        dataChannel.send("hello from remote");
-      });
+  //     dataChannel.addEventListener("open", (e) => {
+  //       console.log("remote datachannel open", e);
+  //       dataChannel.send("hello from remote");
+  //     });
 
-      dataChannel.addEventListener("message", (e) => {
-        console.log("remote message received", e, e.data);
-      });
-    });
-  }
+  //     dataChannel.addEventListener("message", (e) => {
+  //       console.log("remote message received", e, e.data);
+  //       const newMsg: Message = {
+  //         id: uuid.v4(),
+  //         isRemote: true,
+  //         content: e.data,
+  //       };
+
+  //       this.messages.push(newMsg);
+  //       this.snapshot = {
+  //         ...this.snapshot,
+  //         messages: this.messages,
+  //       };
+  //     });
+  //   });
+  // }
 }
