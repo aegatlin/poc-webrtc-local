@@ -1,60 +1,128 @@
-import { useEffect, useSyncExternalStore } from "react";
-import { Wrtc } from "./Wrtc";
+import { Disclosure } from "@headlessui/react";
+import { ChevronsUpDown } from "lucide-react";
+import { useSyncExternalStore } from "react";
+import { WrtcOffer } from "./WrtcOffer";
+import { Button } from "./components/Button";
+import { Card } from "./components/Card";
 import { Header } from "./components/Header";
-import * as I from "react-ichabod";
-import { classes as c } from "./themewind/classes";
+import { PayloadAnswer, PayloadOffer } from "./types";
 
-const wrtc = new Wrtc("abc123");
+const wrtcOffer = new WrtcOffer("abc123");
 
-export const wrtcStore = {
+const wrtcOfferStore = {
   subscribe(onStoreChange: () => void) {
-    wrtc.setOnUpdateCallback(onStoreChange);
+    wrtcOffer.subscribe(onStoreChange);
     return () => null;
   },
   getSnapshot() {
-    return wrtc.getSnapshot();
+    return wrtcOffer.snapshot;
   },
 };
 
 export function Room() {
   const wrtcSnapshot = useSyncExternalStore(
-    wrtcStore.subscribe,
-    wrtcStore.getSnapshot
+    wrtcOfferStore.subscribe,
+    wrtcOfferStore.getSnapshot
   );
 
-  useEffect(() => {
+  const handleClickCreateOffer = () => {
     if (window) {
-      wrtc.createOffer();
+      wrtcOffer.createOffer();
     }
-  }, []);
+  };
+
+  const handleClickWriteOffer = async () => {
+    if (!navigator) return;
+    const payload: PayloadOffer = {
+      sessionDescription: wrtcSnapshot.sessionDescription,
+      iceCandidates: wrtcSnapshot.iceCandidates,
+    };
+    await navigator.clipboard.writeText(JSON.stringify(payload));
+  };
+
+  const handleClickReadAnswer = async () => {
+    if (!navigator) return;
+
+    const payloadString = await navigator.clipboard.readText();
+    const payload: PayloadAnswer = JSON.parse(payloadString);
+    await wrtcOffer.receiveRemoteAnswerPayload(payload);
+  };
 
   return (
     <>
       <Header />
-      <div className="">
-        <I.Card classes={c.card}>
-          <div className="mb-4 border-b pb-4">
-            <p className="text-xl">Local SDP</p>
-          </div>
-          <div className="">
-            {wrtcSnapshot.localDescription ?? "no local sdp yet"}
-          </div>
-        </I.Card>
-        <I.Card classes={c.card}>
-          <div className="mb-4 border-b pb-4">
-            <p className="text-xl">Ice Candidates</p>
-            <p>{wrtcSnapshot.iceCandidates.length}</p>
-          </div>
-          <div className="">
-            {wrtcSnapshot.iceCandidates.map((ic) => {
-              return (
-                <div className="" key={ic.address}>
-                  <p>{JSON.stringify(ic)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </I.Card>
+      <div className="flex flex-col items-center space-y-8 p-8">
+        <div className="flex gap-8">
+          <Card>
+            <div className="flex flex-col items-center space-y-4">
+              <Button onClick={handleClickCreateOffer}>Create offer</Button>
+              <Button onClick={handleClickWriteOffer}>
+                Write offer into clipboard
+              </Button>
+              <Button onClick={handleClickReadAnswer}>
+                Read answer from clipboard
+              </Button>
+            </div>
+          </Card>
+        </div>
+        <div className="flex w-full max-w-prose flex-col gap-4 break-words rounded-lg border-2 border-purple-900 p-4">
+          {wrtcSnapshot.sessionDescription && (
+            <Disclosure>
+              <Disclosure.Button className="flex justify-between rounded-lg bg-purple-100 p-2 text-purple-900 hover:bg-purple-200">
+                <span className="mr-8">Local Offer Session Description</span>
+                <ChevronsUpDown />
+              </Disclosure.Button>
+              <Disclosure.Panel className="p-2">
+                {JSON.stringify(wrtcSnapshot.sessionDescription)}
+              </Disclosure.Panel>
+            </Disclosure>
+          )}
+          {wrtcSnapshot.iceCandidates.length > 0 && (
+            <Disclosure>
+              <Disclosure.Button className="flex justify-between rounded-lg bg-purple-100 p-2 text-purple-900 hover:bg-purple-200">
+                <span className="mr-8">Local Ice Candidates</span>
+                <ChevronsUpDown />
+              </Disclosure.Button>
+              <Disclosure.Panel className="p-2">
+                {wrtcSnapshot.iceCandidates.map((ic) => (
+                  <div className="" key={ic.address}>
+                    <p>{JSON.stringify(ic)}</p>
+                  </div>
+                ))}
+              </Disclosure.Panel>
+            </Disclosure>
+          )}
+          {wrtcSnapshot.remoteAnswerPayload && (
+            <>
+              <Disclosure>
+                <Disclosure.Button className="flex justify-between rounded-lg bg-purple-100 p-2 text-purple-900 hover:bg-purple-200">
+                  <span className="mr-8">
+                    Remote Answer Session Description
+                  </span>
+                  <ChevronsUpDown />
+                </Disclosure.Button>
+                <Disclosure.Panel className="p-2">
+                  {JSON.stringify(
+                    wrtcSnapshot.remoteAnswerPayload.sessionDescription
+                  )}
+                </Disclosure.Panel>
+              </Disclosure>
+              <Disclosure>
+                <Disclosure.Button className="flex justify-between rounded-lg bg-purple-100 p-2 text-purple-900 hover:bg-purple-200">
+                  <span className="mr-8">Remote Answer Ice Candidates</span>
+                  <ChevronsUpDown />
+                </Disclosure.Button>
+                <Disclosure.Panel className="p-2">
+                  {wrtcSnapshot.remoteAnswerPayload.iceCandidates.map((ic) => (
+                    <div className="" key={ic.candidate}>
+                      <p>{JSON.stringify(ic)}</p>
+                    </div>
+                  ))}
+                </Disclosure.Panel>
+              </Disclosure>
+            </>
+          )}
+        </div>
       </div>
     </>
   );

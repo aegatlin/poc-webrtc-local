@@ -1,8 +1,8 @@
-import { Button, Card } from "react-ichabod";
 import { useNavigate } from "react-router-dom";
 import * as uuid from "uuid";
-import { classes } from "./themewind/classes";
 import { Header } from "./components/Header";
+import { Card } from "./components/Card";
+import { Button } from "./components/Button";
 
 export function App() {
   const navigate = useNavigate();
@@ -12,19 +12,21 @@ export function App() {
     navigate(`/room/${roomId}`);
   };
 
+  const handleJoinRoom = () => {
+    navigate(`/room/join`)
+  }
+
   return (
     <>
       <Header />
-      <div className="mt-16 flex flex-col items-center">
-        <Card classes={classes.card}>
+      <div className="mt-16 flex flex-col items-center gap-8">
+        <div className="flex space-x-8">
+          <Button onClick={handleNewRoom}>new room</Button>
+          <Button onClick={handleJoinRoom}>join room</Button>
+        </div>
+        <Card>
           {"a demonstration of the limits of 'true p2p' in the browser"}
         </Card>
-        <div className="flex space-x-8">
-          <Button classes={classes.button} onClick={handleNewRoom}>
-            new room
-          </Button>
-          <Button classes={classes.button}>join room</Button>
-        </div>
       </div>
     </>
   );

@@ -1,19 +1,16 @@
-import * as I from "react-ichabod";
-import { classes } from "../themewind/classes";
-
 export function Header() {
   return (
-    <I.Header classes={classes.header}>
+    <div className="flex justify-between border-b-2 border-purple-900 p-8">
       <div className="">
         <a href="/">poc-webrtc-local</a>
       </div>
       <div className="">
         a{" "}
-        <a href="https://www.gatlin.io" className={classes.link}>
+        <a href="https://www.gatlin.io" className="text-blue-500">
           gatlin.io
         </a>{" "}
         project
       </div>
-    </I.Header>
+    </div>
   );
 }

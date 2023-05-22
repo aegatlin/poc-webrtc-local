@@ -4,11 +4,16 @@ import { App } from "./App.tsx";
 import "./index.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Room } from "./Room.tsx";
+import { Join } from "./Join.tsx";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+  },
+  {
+    path: "/room/join",
+    element: <Join />
   },
   {
     path: "/room/:roomId",
