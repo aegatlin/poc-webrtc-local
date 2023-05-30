@@ -37,7 +37,7 @@ export function Join() {
   const handleClickReadOffer = async () => {
     if (!navigator) return;
     const payloadString = await navigator.clipboard.readText();
-    const payload: PayloadOffer = JSON.parse(payloadString);
+    const payload: PayloadOffer = JSON.parse(atob(payloadString));
     await wrtcAnswer.receiveRemoteOfferPayload(payload);
   };
 
@@ -48,8 +48,9 @@ export function Join() {
       sessionDescription: wrtcSnapshot.sessionDescription,
       iceCandidates: wrtcSnapshot.iceCandidates,
     };
+    const b64Payload = btoa(JSON.stringify(payload));
 
-    await navigator.clipboard.writeText(JSON.stringify(payload));
+    await navigator.clipboard.writeText(b64Payload);
   };
 
   useEffect(() => {

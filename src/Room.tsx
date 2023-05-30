@@ -40,14 +40,15 @@ export function Room() {
       sessionDescription: wrtcSnapshot.sessionDescription,
       iceCandidates: wrtcSnapshot.iceCandidates,
     };
-    await navigator.clipboard.writeText(JSON.stringify(payload));
+    const b64Payload = btoa(JSON.stringify(payload));
+    await navigator.clipboard.writeText(b64Payload);
   };
 
   const handleClickReadAnswer = async () => {
     if (!navigator) return;
 
     const payloadString = await navigator.clipboard.readText();
-    const payload: PayloadAnswer = JSON.parse(payloadString);
+    const payload: PayloadAnswer = JSON.parse(atob(payloadString));
     await wrtcOffer.receiveRemoteAnswerPayload(payload);
   };
 
