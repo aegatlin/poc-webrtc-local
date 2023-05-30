@@ -1,6 +1,6 @@
 import { Disclosure } from "@headlessui/react";
 import { ChevronsUpDown } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { WrtcOffer } from "./WrtcOffer";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
@@ -21,6 +21,8 @@ const wrtcOfferStore = {
 };
 
 export function Room() {
+  const videoLocalRef = useRef<HTMLVideoElement>(null);
+  const videoRemoteRef = useRef<HTMLVideoElement>(null);
   const wrtcSnapshot = useSyncExternalStore(
     wrtcOfferStore.subscribe,
     wrtcOfferStore.getSnapshot
@@ -49,10 +51,36 @@ export function Room() {
     await wrtcOffer.receiveRemoteAnswerPayload(payload);
   };
 
+  useEffect(() => {
+    if (wrtcSnapshot.mediaStream && videoLocalRef.current) {
+      videoLocalRef.current.srcObject = wrtcSnapshot.mediaStream;
+    }
+
+    if (wrtcSnapshot.remoteMediaStream && videoRemoteRef.current) {
+      videoRemoteRef.current.srcObject = wrtcSnapshot.mediaStream;
+    }
+  }, [wrtcSnapshot]);
+
   return (
     <>
       <Header />
       <div className="flex flex-col items-center space-y-8 p-8">
+        <div className="flex h-80 w-full max-w-screen-lg items-center justify-center rounded-lg border-2 border-purple-900 bg-purple-200">
+          <video
+            className={"h-full w-full"}
+            ref={videoLocalRef}
+            autoPlay
+            style={{ transform: "rotateY(180deg)" }}
+          />
+          {wrtcSnapshot.remoteMediaStream && (
+            <video
+              className={"h-full w-full"}
+              ref={videoRemoteRef}
+              autoPlay
+              style={{ transform: "rotateY(180deg)" }}
+            />
+          )}
+        </div>
         <div className="flex gap-8">
           <Card>
             <div className="flex flex-col items-center space-y-4">
@@ -90,7 +118,7 @@ export function Room() {
               </Disclosure.Button>
               <Disclosure.Panel className="p-2">
                 {wrtcSnapshot.iceCandidates.map((ic) => (
-                  <div className="" key={ic.address}>
+                  <div className="" key={JSON.stringify(ic.toJSON())}>
                     <p>{JSON.stringify(ic)}</p>
                   </div>
                 ))}
@@ -131,4 +159,31 @@ export function Room() {
       </div>
     </>
   );
+}
+
+function useVideo() {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [started, setStarted] = useState(false);
+
+  const start = async () => {
+    if (!ref.current) return;
+    setStarted(true);
+
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    ref.current.srcObject = stream;
+    setStream(stream);
+  };
+
+  const state: "off" | "on" | "loading" = started
+    ? stream
+      ? "on"
+      : "loading"
+    : "off";
+
+  return {
+    ref,
+    start,
+    state,
+  };
 }

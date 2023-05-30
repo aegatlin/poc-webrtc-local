@@ -3,6 +3,8 @@ export type SnapshotOffer = {
   sessionDescription: RTCSessionDescription | null;
   iceCandidates: RTCIceCandidate[];
   messages: Message[];
+  mediaStream: MediaStream | null;
+  remoteMediaStream: MediaStream | null;
 };
 
 export type PayloadOffer = {
@@ -15,6 +17,8 @@ export type SnapshotAnswer = {
   sessionDescription: RTCSessionDescription | null;
   iceCandidates: RTCIceCandidate[];
   messages: Message[];
+  mediaStream: MediaStream | null;
+  remoteMediaStream: MediaStream | null;
 };
 
 export type PayloadAnswer = {

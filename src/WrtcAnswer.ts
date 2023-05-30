@@ -6,6 +6,8 @@ export class WrtcAnswer {
   rtcPeerConnection: RTCPeerConnection;
   iceCandidates: RTCIceCandidate[];
   dataChannel: RTCDataChannel | null = null;
+  mediaStream: MediaStream | null = null;
+  remoteMediaStream: MediaStream | null = null;
   public onUpdateCallback: () => void = () => null;
   public snapshot: SnapshotAnswer;
   private remoteOfferPayload: PayloadOffer | null = null;
@@ -20,6 +22,8 @@ export class WrtcAnswer {
       sessionDescription: null,
       iceCandidates: [],
       messages: [],
+      mediaStream: this.mediaStream,
+      remoteMediaStream: this.remoteMediaStream,
     };
 
     this.id = id;
@@ -28,9 +32,37 @@ export class WrtcAnswer {
     this.iceCandidates = [];
     this.initIceCandidateEventListeners();
 
-    // this.dataChannel = this.rtcPeerConnection.createDataChannel(this.id);
-    // this.initLocalDataChannelListeners();
     this.initRemoteDataChannelListeners();
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((mediaStream) => {
+        this.mediaStream = mediaStream;
+        mediaStream
+          .getTracks()
+          .forEach((track) =>
+            this.rtcPeerConnection.addTrack(track, mediaStream)
+          );
+
+        this.snapshot = {
+          ...this.snapshot,
+          mediaStream: this.mediaStream,
+        };
+
+        this.publish();
+      });
+
+    this.rtcPeerConnection.addEventListener(
+      "track",
+      (rtcTrackEvent: RTCTrackEvent) => {
+        this.remoteMediaStream = rtcTrackEvent.streams?.at(0) ?? null;
+
+        this.snapshot = {
+          ...this.snapshot,
+          remoteMediaStream: this.remoteMediaStream,
+        };
+      }
+    );
   }
 
   async receiveRemoteOfferPayload(offerPayload: PayloadOffer) {
@@ -78,7 +110,6 @@ export class WrtcAnswer {
     if (!this.rtcPeerConnection) throw "no rtcPeerConnection";
 
     this.rtcPeerConnection.addEventListener("icecandidate", (e) => {
-      console.log("ice candidate event: ", e);
       if (e.candidate) {
         this.iceCandidates.push(e.candidate);
         this.snapshot = {
@@ -110,36 +141,8 @@ export class WrtcAnswer {
     this.publish();
   }
 
-  /**
-   * I think these listeners are listening to local message
-   * events. Aka, they are not actually useful, but are
-   * for logging/debugging.
-   */
-  // private initLocalDataChannelListeners() {
-  //   if (!this.dataChannel) throw "no data channel";
-
-  //   this.dataChannel.addEventListener("open", (e) => {
-  //     console.log("local datachannel open", e);
-  //     this.dataChannel.send("hello from local");
-  //   });
-
-  //   this.dataChannel.addEventListener("message", (e) => {
-  //     console.log("local message received", e, e.data);
-  //   });
-  // }
-
-  /**
-   * I believe that once a 'datachannel' event is received,
-   * it means that a remote connection has been established,
-   * and therefore you:
-   *
-   * 1. have a data channel which was created by remote (so, in this case, offer).
-   * 2. Can add listeners to said channel
-   * 3. Respond to 'message' events on said channel
-   */
   private initRemoteDataChannelListeners() {
     this.rtcPeerConnection.addEventListener("datachannel", (e) => {
-      console.log("remote datachannel initiated");
       this.dataChannel = e.channel;
 
       this.dataChannel.addEventListener("open", (e) => {
@@ -147,8 +150,6 @@ export class WrtcAnswer {
       });
 
       this.dataChannel.addEventListener("message", (e) => {
-        console.log("remote message received");
-        console.log('???? ', e.data, JSON.parse(e.data))
         const msg: Message = JSON.parse(e.data);
         this.addMessage({ ...msg, isRemote: true });
       });

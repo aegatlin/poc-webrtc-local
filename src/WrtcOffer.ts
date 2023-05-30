@@ -1,11 +1,13 @@
-import { Message, PayloadAnswer, SnapshotOffer } from "./types";
 import * as uuid from "uuid";
+import { Message, PayloadAnswer, SnapshotOffer } from "./types";
 
 export class WrtcOffer {
   id: string;
   rtcPeerConnection: RTCPeerConnection;
   iceCandidates: RTCIceCandidate[];
   dataChannel: RTCDataChannel;
+  mediaStream: MediaStream | null = null;
+  remoteMediaStream: MediaStream | null = null;
   public onUpdateCallback: () => void = () => null;
   public snapshot: SnapshotOffer;
   private subscriptionCallbacks: (() => void)[] = [];
@@ -19,6 +21,8 @@ export class WrtcOffer {
       sessionDescription: null,
       iceCandidates: [],
       messages: [],
+      mediaStream: this.mediaStream,
+      remoteMediaStream: this.remoteMediaStream,
     };
 
     this.id = id;
@@ -29,7 +33,36 @@ export class WrtcOffer {
 
     this.dataChannel = this.rtcPeerConnection.createDataChannel(this.id);
     this.initLocalDataChannelListeners();
-    // this.initRemoteDataChannelListeners();
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((mediaStream) => {
+        this.mediaStream = mediaStream;
+        mediaStream
+          .getTracks()
+          .forEach((track) =>
+            this.rtcPeerConnection.addTrack(track, mediaStream)
+          );
+
+        this.snapshot = {
+          ...this.snapshot,
+          mediaStream: this.mediaStream,
+        };
+
+        this.publish();
+      });
+
+    this.rtcPeerConnection.addEventListener(
+      "track",
+      (rtcTrackEvent: RTCTrackEvent) => {
+        this.remoteMediaStream = rtcTrackEvent.streams?.at(0) ?? null;
+
+        this.snapshot = {
+          ...this.snapshot,
+          remoteMediaStream: this.remoteMediaStream,
+        };
+      }
+    );
   }
 
   async createOffer() {
@@ -75,7 +108,6 @@ export class WrtcOffer {
     if (!this.rtcPeerConnection) throw "no rtcPeerConnection";
 
     this.rtcPeerConnection.addEventListener("icecandidate", (e) => {
-      console.log("ice candidate event: ", e);
       if (e.candidate) {
         this.iceCandidates.push(e.candidate);
         this.snapshot = {
@@ -88,7 +120,6 @@ export class WrtcOffer {
   }
 
   sendMessage(content: string) {
-    console.log('!!!!!!!!!!!!!! ', this)
     const msg: Message = {
       id: uuid.v4(),
       isRemote: false,
@@ -97,7 +128,6 @@ export class WrtcOffer {
 
     this.addMessage(msg);
     this.dataChannel.send(JSON.stringify(msg));
-    console.log(msg, JSON.stringify(msg))
   }
 
   private addMessage(msg: Message) {
@@ -109,61 +139,16 @@ export class WrtcOffer {
     this.publish();
   }
 
-  /**
-   * I think these listeners are listening to local message
-   * events. Aka, they are not actually useful, but are
-   * for logging/debugging.
-   */
   private initLocalDataChannelListeners() {
     if (!this.dataChannel) throw "no data channel";
 
     this.dataChannel.addEventListener("open", (e) => {
-      console.log("datachannel open");
+      console.log("local datachannel open");
     });
 
     this.dataChannel.addEventListener("message", (e) => {
-      console.log("message received");
       const msg: Message = JSON.parse(e.data);
       this.addMessage({ ...msg, isRemote: true });
     });
   }
-
-  /**
-   * I believe that once a 'datachannel' event is received,
-   * it means that a remote connection has been established,
-   * and therefore you:
-   *
-   * 1. have a data channel.
-   * 2. Can add listeners to said channel
-   * 3. Respond to 'message' events on said channel
-   *
-   * This function will need to get more sophisticated over time to
-   * handle chats.
-   */
-  // private initRemoteDataChannelListeners() {
-  //   this.rtcPeerConnection.addEventListener("datachannel", (e) => {
-  //     console.log("remote datachannel event: ", e);
-  //     const dataChannel = e.channel;
-
-  //     dataChannel.addEventListener("open", (e) => {
-  //       console.log("remote datachannel open", e);
-  //       dataChannel.send("hello from remote");
-  //     });
-
-  //     dataChannel.addEventListener("message", (e) => {
-  //       console.log("remote message received", e, e.data);
-  //       const newMsg: Message = {
-  //         id: uuid.v4(),
-  //         isRemote: true,
-  //         content: e.data,
-  //       };
-
-  //       this.messages.push(newMsg);
-  //       this.snapshot = {
-  //         ...this.snapshot,
-  //         messages: this.messages,
-  //       };
-  //     });
-  //   });
-  // }
 }
