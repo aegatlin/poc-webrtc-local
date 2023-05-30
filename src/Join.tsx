@@ -6,7 +6,8 @@ import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Header } from "./components/Header";
 import { MessagePanel } from "./components/MessagePanel";
-import { PayloadAnswer, PayloadOffer } from "./types";
+import { PayloadAnswer, PayloadOffer, SnapshotAnswer } from "./types";
+import { useParams, useSearchParams } from "react-router-dom";
 
 const wrtcAnswer = new WrtcAnswer("def456");
 
@@ -20,7 +21,31 @@ const wrtcAnswerStore = {
   },
 };
 
+const createUrlFromSnapshot = (wrtcSnapshot: SnapshotAnswer) => {
+  const payload: PayloadOffer = {
+    sessionDescription: wrtcSnapshot.sessionDescription,
+    iceCandidates: wrtcSnapshot.iceCandidates,
+  };
+  const b64Payload = btoa(JSON.stringify(payload));
+
+  const base = import.meta.env.DEV
+    ? "http://localhost:5173/poc-webrtc-local"
+    : "https://aegatlin.github.io/poc-webrtc-local";
+
+  const url = new URL(`${base}/join?payload=${b64Payload}`);
+  return url;
+};
+
+const writeUrlToClipboard = async (wrtcSnapshot: SnapshotAnswer) => {
+  const url = createUrlFromSnapshot(wrtcSnapshot);
+  await navigator.clipboard.writeText(url.toString());
+};
+
 export function Join() {
+  const [searchParams, _] = useSearchParams();
+  const remotePayload = searchParams.get("payload");
+  if (!remotePayload) throw "no remote payload";
+
   const videoLocalRef = useRef<HTMLVideoElement>(null);
   const videoRemoteRef = useRef<HTMLVideoElement>(null);
   const wrtcSnapshot = useSyncExternalStore(
@@ -28,16 +53,25 @@ export function Join() {
     wrtcAnswerStore.getSnapshot
   );
 
-  const handleClickCreateAnswer = () => {
-    if (window) {
-      wrtcAnswer.createAnswer();
+  useEffect(() => {
+    if (wrtcSnapshot.mediaStream && videoLocalRef.current) {
+      videoLocalRef.current.srcObject = wrtcSnapshot.mediaStream;
     }
+
+    if (wrtcSnapshot.remoteMediaStream && videoRemoteRef.current) {
+      videoRemoteRef.current.srcObject = wrtcSnapshot.mediaStream;
+    }
+  }, [wrtcSnapshot]);
+
+  const handleClickCreateAnswer = () => {
+    if (!window) throw "no window";
+    wrtcAnswer.createAnswer();
+    writeUrlToClipboard(wrtcSnapshot);
   };
 
   const handleClickReadOffer = async () => {
-    if (!navigator) return;
-    const payloadString = await navigator.clipboard.readText();
-    const payload: PayloadOffer = JSON.parse(atob(payloadString));
+    if (!window) throw "no window";
+    const payload: PayloadOffer = JSON.parse(atob(remotePayload));
     await wrtcAnswer.receiveRemoteOfferPayload(payload);
   };
 
@@ -52,16 +86,6 @@ export function Join() {
 
     await navigator.clipboard.writeText(b64Payload);
   };
-
-  useEffect(() => {
-    if (wrtcSnapshot.mediaStream && videoLocalRef.current) {
-      videoLocalRef.current.srcObject = wrtcSnapshot.mediaStream;
-    }
-
-    if (wrtcSnapshot.remoteMediaStream && videoRemoteRef.current) {
-      videoRemoteRef.current.srcObject = wrtcSnapshot.mediaStream;
-    }
-  }, [wrtcSnapshot]);
 
   return (
     <>
@@ -87,7 +111,7 @@ export function Join() {
           <Card>
             <div className="flex flex-col items-center space-y-4">
               <Button onClick={handleClickReadOffer}>
-                Read offer from clipboard
+                Read offer
               </Button>
               <Button onClick={handleClickCreateAnswer}>Create answer</Button>
               <Button onClick={handleClickWriteAnswer}>

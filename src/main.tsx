@@ -13,8 +13,8 @@ const router = createBrowserRouter(
       element: <App />,
     },
     {
-      path: "/room/join",
-      element: <Join />,
+      path: "/join",
+      element: <Join />
     },
     {
       path: "/room/:roomId",

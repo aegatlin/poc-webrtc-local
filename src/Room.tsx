@@ -5,7 +5,7 @@ import { WrtcOffer } from "./WrtcOffer";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Header } from "./components/Header";
-import { PayloadAnswer, PayloadOffer } from "./types";
+import { PayloadAnswer, PayloadOffer, SnapshotOffer } from "./types";
 import { MessagePanel } from "./components/MessagePanel";
 
 const wrtcOffer = new WrtcOffer("abc123");
@@ -20,6 +20,26 @@ const wrtcOfferStore = {
   },
 };
 
+const createUrlFromSnapshot = (wrtcSnapshot: SnapshotOffer) => {
+  const payload: PayloadOffer = {
+    sessionDescription: wrtcSnapshot.sessionDescription,
+    iceCandidates: wrtcSnapshot.iceCandidates,
+  };
+  const b64Payload = btoa(JSON.stringify(payload));
+
+  const base = import.meta.env.DEV
+    ? "http://localhost:5173/poc-webrtc-local"
+    : "https://aegatlin.github.io/poc-webrtc-local";
+
+  const url = new URL(`${base}/join?payload=${b64Payload}`);
+  return url;
+};
+
+const writeUrlToClipboard = async (wrtcSnapshot: SnapshotOffer) => {
+  const url = createUrlFromSnapshot(wrtcSnapshot);
+  await navigator.clipboard.writeText(url.toString());
+};
+
 export function Room() {
   const videoLocalRef = useRef<HTMLVideoElement>(null);
   const videoRemoteRef = useRef<HTMLVideoElement>(null);
@@ -29,19 +49,14 @@ export function Room() {
   );
 
   const handleClickCreateOffer = () => {
-    if (window) {
-      wrtcOffer.createOffer();
-    }
+    if (!window) throw "no window";
+    wrtcOffer.createOffer();
+    writeUrlToClipboard(wrtcSnapshot);
   };
 
   const handleClickWriteOffer = async () => {
     if (!navigator) return;
-    const payload: PayloadOffer = {
-      sessionDescription: wrtcSnapshot.sessionDescription,
-      iceCandidates: wrtcSnapshot.iceCandidates,
-    };
-    const b64Payload = btoa(JSON.stringify(payload));
-    await navigator.clipboard.writeText(b64Payload);
+    await writeUrlToClipboard(wrtcSnapshot);
   };
 
   const handleClickReadAnswer = async () => {
