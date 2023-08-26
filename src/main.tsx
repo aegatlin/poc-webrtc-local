@@ -1,10 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { App } from "./App.tsx";
-import "./index.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { Room } from "./Room.tsx";
-import { Join } from "./Join.tsx";
+import { App } from "./App.tsx";
+import { JoinRoom } from "./components/JoinRoom.tsx";
+import { NewRoom } from "./components/NewRoom.tsx";
+import "./index.css";
 
 const router = createBrowserRouter(
   [
@@ -13,12 +13,12 @@ const router = createBrowserRouter(
       element: <App />,
     },
     {
-      path: "/join",
-      element: <Join />
+      path: "/new",
+      element: <NewRoom />,
     },
     {
-      path: "/room/:roomId",
-      element: <Room />,
+      path: "/join",
+      element: <JoinRoom />,
     },
   ],
   {
