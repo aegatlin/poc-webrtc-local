@@ -1,49 +1,20 @@
 # poc-webrtc-local
 
-Truly local-only webrtc means you cannot use your own signaling servers. The
-sad truth of this means you will merely be using _someone elses_ signaling servers.
-But this is a PoC without (our own) signaling, so we push on.
+This is a PoC for a p2p webrtc. The first mode is local only webrtc via manual
+file sharing.
 
-(In theory two peers could verbally dictate their various settings and you have
-achieved "unsignaled" flow. But, the human voice counts as a communication channel,
-and dictation is the act of signaling.)
+## Ideas
 
-## Unsignaled flow
+### p2p local-only
 
-1. Create local webrtcpeerconnection and associated local sdp offer and ice candidates
-2. Share (magically) these details with a peer
-3. The peer saves that info as "remote" and shares their "local" info with you. You save theirs as your "remote"
-4. Yalls browsers attempt to find each other. On success, you got comms!
+Is there a way to compress the file data into an easily sharable URL? Perhaps there is a reversible string compression algorithm that would not exceed URL max character length, and thereby we could include the connection details as a URL query param?
 
-The info that is shared is the sdp offer and sdp answer, and then the ice candidates. The offer/answer
-are one-sided affairs. You and your peer cannot both create an offer. One peer has to wait for an
-offer, and then generate and share their answer.
+If we can encode the payload as a Data URL / Blob, then perhaps we can share that string via the Share Web API with other local peers.
 
-## How to improve the shareability of the unsignaled signals
+### p2p non-local
 
-There could be clever ways to compress the info payload such that the info is easier to share.
-I'm not at all familiar with the compress algorithm space, so will have to look into this further.
-The pipe dream is an easily reversible compression algorithm such that you can share a long (but not
-too long) URL with a peer, for example over a texting app.
+The biggest issues with non-local p2p is discoverability. Perhaps there is a p2p protocol that can be leveraged instead of a STUN server to identify a node in the network. But, even then, you will still need to know your STUN'd external IP in order to connect. Unless you could get your IPv6 address somehow, and communicate that across the p2p network.
 
-```
-/room/:roomId?offer=abc123
-```
+Can you write the file to a blockchain?
 
-Maybe then a flow could allow for another copy and paste with the answer
-
-```
-def456
-```
-
-The offerer could then paste that text into a form field on their own page.
-
-Or you could encode it in a url again?
-
-```
-/room/:roomId?answer=def456
-```
-
-They would then have to open a new webpage which would maybe mess up their offer data, unless
-that data was cached in local and/or somehow perserved across webpages. Though, this might be unwise
-for various reasons.
+Can you write the file to IPFS?

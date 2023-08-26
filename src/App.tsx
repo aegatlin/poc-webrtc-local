@@ -6,11 +6,11 @@ import { Header } from "./components/Header";
 export function App() {
   const navigate = useNavigate();
 
-  const handleNewRoom = () => {
+  const handleNewRoomClick = () => {
     navigate(`/new`);
   };
 
-  const handleJoinRoom = () => {
+  const handleJoinRoomClick = () => {
     navigate(`/join`);
   };
 
@@ -19,8 +19,8 @@ export function App() {
       <Header />
       <div className="m-16 flex flex-col items-center gap-8 ">
         <div className="flex space-x-8">
-          <Button onClick={handleNewRoom}>new room</Button>
-          <Button onClick={handleJoinRoom}>join room</Button>
+          <Button onClick={handleNewRoomClick}>new room</Button>
+          <Button onClick={handleJoinRoomClick}>join room</Button>
         </div>
         <Card>
           {"a demonstration of the limits of 'true p2p' in the browser"}

@@ -1,6 +1,7 @@
 import * as uuid from "uuid";
 import { Store } from "./Store";
-import { Message, RemotePeerPayload, W } from "./temp";
+import { Message, RemotePeerPayload as PeerPayload, W } from "./types";
+import { waitForMs } from "./waitForMs";
 
 export class Peer {
   rtcpc: RTCPeerConnection;
@@ -17,7 +18,9 @@ export class Peer {
 
     this.ics = [];
     this.rtcpc.onicecandidate = (e) => {
-      if (e.candidate) this.ics.push(e.candidate);
+      if (e.candidate) {
+        this.ics.push(e.candidate);
+      }
     };
   }
 
@@ -25,6 +28,10 @@ export class Peer {
     this.status.update({ offer: CreationState.Creating });
     const offer = await this.rtcpc.createOffer();
     await this.rtcpc.setLocalDescription(offer);
+
+    // Hack to wait for some ice candidates
+    await waitForMs(500);
+
     this.status.update({ offer: CreationState.Created });
   }
 
@@ -32,10 +39,14 @@ export class Peer {
     this.status.update({ answer: CreationState.Creating });
     const answer = await this.rtcpc.createAnswer();
     await this.rtcpc.setLocalDescription(answer);
+
+    // Hack to wait for some ice candidates
+    await waitForMs(500);
+
     this.status.update({ answer: CreationState.Created });
   }
 
-  async receiveRemotePayload({ sdp, ics }: RemotePeerPayload) {
+  async receiveRemotePayload({ sdp, ics }: PeerPayload) {
     await this.rtcpc.setRemoteDescription(sdp);
     for (const ic of ics) {
       await this.rtcpc.addIceCandidate(new window.RTCIceCandidate(ic));
