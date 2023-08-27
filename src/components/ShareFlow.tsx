@@ -15,8 +15,10 @@ export function ShareFlow({
   type: "offerer" | "answerer";
 }) {
   const status = usePeerStatus(peer);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectAnswerFileInputRef = useRef<HTMLInputElement>(null);
+  const selectOfferFileInputRef = useRef<HTMLInputElement>(null);
   const [dataUrl, setDataUrl] = useState<string>();
+  const canShare = !!window?.navigator?.canShare;
 
   const handleClickCreate = async () => {
     if (type === "offerer") {
@@ -35,15 +37,9 @@ export function ShareFlow({
     setDataUrl(url);
   };
 
-  const handleSelectFileClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
   const handleLoadFileClick = () => {
-    if (fileInputRef.current) {
-      const file = fileInputRef.current.files?.item(0);
+    if (selectAnswerFileInputRef.current) {
+      const file = selectAnswerFileInputRef.current.files?.item(0);
       if (file && peer) {
         receiveRemotePayload(peer, file);
       }
@@ -59,14 +55,36 @@ export function ShareFlow({
     <LinkButton href={dataUrl} download>
       Save offer
     </LinkButton>,
-    <FileInputButton ref={fileInputRef} onClick={handleSelectFileClick}>
+    <FileInputButton
+      ref={selectOfferFileInputRef}
+      onClick={() => selectOfferFileInputRef.current?.click()}
+    >
+      Select offer file
+    </FileInputButton>,
+    <FileShareButton
+      getFile={() => {
+        const f = selectOfferFileInputRef.current?.files?.item(0);
+        if (f && peer) {
+          return f;
+        } else {
+          return null;
+        }
+      }}
+    />,
+    <FileInputButton
+      ref={selectAnswerFileInputRef}
+      onClick={() => selectAnswerFileInputRef.current?.click()}
+    >
       Select answer file
     </FileInputButton>,
     <Button onClick={handleLoadFileClick}>Load answer</Button>,
   ];
 
   const answerFlow = [
-    <FileInputButton ref={fileInputRef} onClick={handleSelectFileClick}>
+    <FileInputButton
+      ref={selectOfferFileInputRef}
+      onClick={() => selectOfferFileInputRef.current?.click()}
+    >
       Select offer file
     </FileInputButton>,
     <Button onClick={handleLoadFileClick}>Load offer</Button>,
@@ -79,6 +97,27 @@ export function ShareFlow({
       Save answer
     </LinkButton>,
   ];
+
+  if (canShare) {
+    answerFlow.push(
+      <FileInputButton
+        ref={selectAnswerFileInputRef}
+        onClick={() => selectAnswerFileInputRef.current?.click()}
+      >
+        Select answer file
+      </FileInputButton>,
+      <FileShareButton
+        getFile={() => {
+          const f = selectAnswerFileInputRef.current?.files?.item(0);
+          if (f && peer) {
+            return f;
+          } else return null;
+        }}
+      >
+        Share answer file
+      </FileShareButton>
+    );
+  }
 
   const flow = type === "offerer" ? offerFlow : answerFlow;
   const isNotLast = (i: number) => flow.length - 1 > i;
@@ -98,6 +137,42 @@ export function ShareFlow({
         );
       })}
     </div>
+  );
+}
+
+function FileShareButton({
+  getFile,
+  children,
+}: {
+  getFile: () => File | null;
+  children: ReactNode;
+}) {
+  const canShare = !!window.navigator.canShare;
+  const handleOnClick = () => {
+    const file = getFile();
+    if (!file) return;
+
+    const data = {
+      title: "File to share",
+      text: "share this file with your peer",
+      files: [file],
+    };
+
+    if (window.navigator.canShare(data)) {
+      window.navigator.share(data);
+    } else {
+      console.log("cannot share: ", data);
+    }
+  };
+
+  return (
+    <Button
+      onClick={handleOnClick}
+      disabled={canShare ? false : true}
+      title={canShare ? "" : "content sharing is not supported on this browser"}
+    >
+      {children}
+    </Button>
   );
 }
 
