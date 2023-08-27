@@ -23,7 +23,14 @@ export function App() {
           <Button onClick={handleJoinRoomClick}>join room</Button>
         </div>
         <Card>
-          {"a demonstration of the limits of 'true p2p' in the browser"}
+          <div className="flex flex-col gap-y-4">
+            <p>{"Usage notes"}</p>
+            <p>
+              {
+                "Share Web APIs are not fully adopted on web browsers yet. On Safari, you can use Share > AirDrop."
+              }
+            </p>
+          </div>
         </Card>
       </div>
     </>

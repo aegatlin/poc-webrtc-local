@@ -37,15 +37,6 @@ export function ShareFlow({
     setDataUrl(url);
   };
 
-  const handleLoadFileClick = () => {
-    if (selectAnswerFileInputRef.current) {
-      const file = selectAnswerFileInputRef.current.files?.item(0);
-      if (file && peer) {
-        receiveRemotePayload(peer, file);
-      }
-    }
-  };
-
   const offerFlow = [
     <CreationStateButton
       text="Create offer"
@@ -55,30 +46,49 @@ export function ShareFlow({
     <LinkButton href={dataUrl} download>
       Save offer
     </LinkButton>,
-    <FileInputButton
-      ref={selectOfferFileInputRef}
-      onClick={() => selectOfferFileInputRef.current?.click()}
-    >
-      Select offer file
-    </FileInputButton>,
-    <FileShareButton
-      getFile={() => {
-        const f = selectOfferFileInputRef.current?.files?.item(0);
-        if (f && peer) {
-          return f;
-        } else {
-          return null;
-        }
-      }}
-    />,
+  ];
+
+  if (canShare) {
+    offerFlow.push(
+      <FileInputButton
+        ref={selectOfferFileInputRef}
+        onClick={() => selectOfferFileInputRef.current?.click()}
+      >
+        Select offer file
+      </FileInputButton>,
+      <FileShareButton
+        getFile={() => {
+          const f = selectOfferFileInputRef.current?.files?.item(0);
+          if (f && peer) {
+            return f;
+          } else {
+            return null;
+          }
+        }}
+      >
+        Share offer file
+      </FileShareButton>
+    );
+  }
+
+  offerFlow.push(
     <FileInputButton
       ref={selectAnswerFileInputRef}
       onClick={() => selectAnswerFileInputRef.current?.click()}
     >
       Select answer file
     </FileInputButton>,
-    <Button onClick={handleLoadFileClick}>Load answer</Button>,
-  ];
+    <Button
+      onClick={() => {
+        const file = selectAnswerFileInputRef.current?.files?.item(0);
+        if (file && peer) {
+          receiveRemotePayload(peer, file);
+        }
+      }}
+    >
+      Load answer
+    </Button>
+  );
 
   const answerFlow = [
     <FileInputButton
@@ -87,7 +97,16 @@ export function ShareFlow({
     >
       Select offer file
     </FileInputButton>,
-    <Button onClick={handleLoadFileClick}>Load offer</Button>,
+    <Button
+      onClick={() => {
+        const file = selectOfferFileInputRef.current?.files?.item(0);
+        if (file && peer) {
+          receiveRemotePayload(peer, file);
+        }
+      }}
+    >
+      Load offer
+    </Button>,
     <CreationStateButton
       text="Create answer"
       creationState={status.answer}
@@ -123,7 +142,7 @@ export function ShareFlow({
   const isNotLast = (i: number) => flow.length - 1 > i;
 
   return (
-    <div className="my-8 flex items-center justify-center gap-x-4 rounded-2xl border-2 border-purple-900 p-8">
+    <div className="mx-16 my-8 flex max-w-6xl flex-wrap items-center justify-center gap-4 gap-x-4 rounded-2xl border-2 border-purple-900 p-8">
       {flow.map((c, i) => {
         return (
           <>
