@@ -14,6 +14,16 @@ export function App() {
     navigate(`/join`);
   };
 
+  const text = [
+    "About",
+    `This is a proof of concept for a purely local webrtc session. The way it works is by collecting the ICE candidates
+  and the SDP in a single JSON payload, and saving that payload as a file. That file can then be transferred to a peer
+  manually (e.g., a thumb drive), or via the Share Web API (e.g., via the NFC Apple AirDrop utility).`,
+    `Usage notes`,
+    `Share Web APIs are not fully adopted yet across browsers. The share utility has been tested successfully on
+  Safari between a local mac laptop and ipad.`,
+  ];
+
   return (
     <>
       <Header />
@@ -24,12 +34,9 @@ export function App() {
         </div>
         <Card>
           <div className="flex flex-col gap-y-4">
-            <p>{"Usage notes"}</p>
-            <p>
-              {
-                "Share Web APIs are not fully adopted on web browsers yet. On Safari, you can use Share > AirDrop."
-              }
-            </p>
+            {text.map((t) => (
+              <p>{t}</p>
+            ))}
           </div>
         </Card>
       </div>

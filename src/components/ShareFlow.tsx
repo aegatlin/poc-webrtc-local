@@ -1,5 +1,12 @@
 import { Check, ChevronRight, FilePlus2, Loader } from "lucide-react";
-import { ReactNode, forwardRef, useRef, useState } from "react";
+import {
+  Fragment,
+  ReactNode,
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { CreationState, Peer } from "../Peer";
 import { toBlobUrl } from "../toBlobUrl";
 import { Button } from "./Button";
@@ -15,8 +22,8 @@ export function ShareFlow({
   type: "offerer" | "answerer";
 }) {
   const status = usePeerStatus(peer);
-  const selectAnswerFileInputRef = useRef<HTMLInputElement>(null);
-  const selectOfferFileInputRef = useRef<HTMLInputElement>(null);
+  const selectAnswerFileInputRef = useRef<FileHandle>(null);
+  const selectOfferFileInputRef = useRef<FileHandle>(null);
   const [dataUrl, setDataUrl] = useState<string>();
   const canShare = !!window?.navigator?.canShare;
 
@@ -50,20 +57,13 @@ export function ShareFlow({
 
   if (canShare) {
     offerFlow.push(
-      <FileInputButton
-        ref={selectOfferFileInputRef}
-        onClick={() => selectOfferFileInputRef.current?.click()}
-      >
+      <FileInputButton ref={selectOfferFileInputRef}>
         Select offer file
       </FileInputButton>,
       <FileShareButton
         getFile={() => {
-          const f = selectOfferFileInputRef.current?.files?.item(0);
-          if (f && peer) {
-            return f;
-          } else {
-            return null;
-          }
+          const file = selectOfferFileInputRef.current?.getFile();
+          return file && peer ? file : null;
         }}
       >
         Share offer file
@@ -72,15 +72,12 @@ export function ShareFlow({
   }
 
   offerFlow.push(
-    <FileInputButton
-      ref={selectAnswerFileInputRef}
-      onClick={() => selectAnswerFileInputRef.current?.click()}
-    >
+    <FileInputButton ref={selectAnswerFileInputRef}>
       Select answer file
     </FileInputButton>,
     <Button
       onClick={() => {
-        const file = selectAnswerFileInputRef.current?.files?.item(0);
+        const file = selectAnswerFileInputRef.current?.getFile();
         if (file && peer) {
           receiveRemotePayload(peer, file);
         }
@@ -91,15 +88,12 @@ export function ShareFlow({
   );
 
   const answerFlow = [
-    <FileInputButton
-      ref={selectOfferFileInputRef}
-      onClick={() => selectOfferFileInputRef.current?.click()}
-    >
+    <FileInputButton ref={selectOfferFileInputRef}>
       Select offer file
     </FileInputButton>,
     <Button
       onClick={() => {
-        const file = selectOfferFileInputRef.current?.files?.item(0);
+        const file = selectOfferFileInputRef.current?.getFile();
         if (file && peer) {
           receiveRemotePayload(peer, file);
         }
@@ -119,18 +113,13 @@ export function ShareFlow({
 
   if (canShare) {
     answerFlow.push(
-      <FileInputButton
-        ref={selectAnswerFileInputRef}
-        onClick={() => selectAnswerFileInputRef.current?.click()}
-      >
+      <FileInputButton ref={selectAnswerFileInputRef}>
         Select answer file
       </FileInputButton>,
       <FileShareButton
         getFile={() => {
-          const f = selectAnswerFileInputRef.current?.files?.item(0);
-          if (f && peer) {
-            return f;
-          } else return null;
+          const file = selectAnswerFileInputRef.current?.getFile();
+          return file && peer ? file : null;
         }}
       >
         Share answer file
@@ -145,14 +134,14 @@ export function ShareFlow({
     <div className="mx-16 my-8 flex max-w-6xl flex-wrap items-center justify-center gap-4 gap-x-4 rounded-2xl border-2 border-purple-900 p-8">
       {flow.map((c, i) => {
         return (
-          <>
-            <div className="">{c}</div>
+          <Fragment key={i}>
+            <div>{c}</div>
             {isNotLast(i) && (
-              <div className="">
+              <div>
                 <ChevronRight />
               </div>
             )}
-          </>
+          </Fragment>
         );
       })}
     </div>
@@ -243,19 +232,37 @@ function CreationStateButton({
   );
 }
 
-const FileInputButton = forwardRef<
-  HTMLInputElement,
-  { onClick: () => void; children: ReactNode }
->(({ onClick, children }, ref) => {
-  return (
-    <>
-      <input
-        ref={ref}
-        className="hidden"
-        type="file"
-        accept="application/json"
-      />
-      <Button onClick={onClick}>{children}</Button>
-    </>
-  );
-});
+type FileHandle = {
+  getFile: () => File | null;
+};
+
+const FileInputButton = forwardRef<FileHandle, { children: ReactNode }>(
+  ({ children }, ref) => {
+    const _ref = useRef<HTMLInputElement>(null);
+
+    useImperativeHandle(
+      ref,
+      () => {
+        return {
+          getFile: () => {
+            const file = _ref.current?.files?.item(0);
+            return file ? file : null;
+          },
+        };
+      },
+      []
+    );
+
+    return (
+      <>
+        <input
+          ref={_ref}
+          className="hidden"
+          type="file"
+          accept="application/json"
+        />
+        <Button onClick={() => _ref.current?.click()}>{children}</Button>
+      </>
+    );
+  }
+);
